@@ -40,9 +40,16 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
+import org.apache.http.HttpHost;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+
 
 /**
  * @author Peter Karich
@@ -50,7 +57,7 @@ import org.json.JSONObject;
 public class MySearchResponseJson implements MySearchResponse {
 
     private int timeout = 20000;
-    private HttpClient client;
+    private DefaultHttpClient client;
     private String scrollId;
     private List<MySearchHit> bufferedHits;
     private String host;
@@ -60,15 +67,28 @@ public class MySearchResponseJson implements MySearchResponse {
     private final long totalHits;
     private long bytes;
     private String credentials = "";
+    private String proxyHost;
+    private int proxyPort;
+    private String proxyUser;
+    private String proxyPasswd;
+
+    protected final ESLogger logger = Loggers.getLogger(ReIndexPlugin.class);
 
     public MySearchResponseJson(String searchHost, int searchPort, String searchIndexName,
             String searchType, String filter, String credentials,
-            int hitsPerPage, boolean withVersion, int keepTimeInMinutes) {
+            int hitsPerPage, boolean withVersion, int keepTimeInMinutes, String proxyHost,
+            int proxyPort, String proxyUser, String proxyPasswd) {
+
         if (!searchHost.startsWith("http"))
             searchHost = "http://" + searchHost;
         this.host = searchHost;
         this.port = searchPort;
         this.withVersion = withVersion;
+        this.proxyHost = proxyHost;
+        this.proxyPort = proxyPort;
+        this.proxyUser = proxyUser;
+        this.proxyPasswd = proxyPasswd;
+
         keepMin = keepTimeInMinutes;
         bufferedHits = new ArrayList<MySearchHit>(hitsPerPage);
         PoolingClientConnectionManager connManager = new PoolingClientConnectionManager();
@@ -78,7 +98,17 @@ public class MySearchResponseJson implements MySearchResponse {
         HttpConnectionParams.setConnectionTimeout(params, timeout);      
         HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
         HttpProtocolParams.setContentCharset(params, "UTF-8");        
-        client = new DefaultHttpClient(connManager, params);                        
+        client = new DefaultHttpClient(connManager, params);      
+
+        if (proxyHost != null){
+          HttpHost proxy = new HttpHost(this.proxyHost, this.proxyPort);
+          client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY,proxy);
+          if (proxyUser != null) {
+            client.getCredentialsProvider().setCredentials(
+              new AuthScope(proxyHost, proxyPort),
+              new UsernamePasswordCredentials(proxyUser, proxyPasswd));
+          }
+        }
         
         // does not work!? client.getParams().setParameter("Authorization", "Basic " + credentials);
         if (credentials != null)
@@ -194,7 +224,8 @@ public class MySearchResponseJson implements MySearchResponse {
             throws MalformedURLException, IOException {
         URL url = new URL(urlAsStr);
         //using proxy may increase latency
-        HttpURLConnection hConn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+        HttpURLConnection hConn;
+        hConn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
         hConn.setRequestProperty("User-Agent", "ElasticSearch reindex");
         hConn.setRequestProperty("Accept", "application/json");
         hConn.setRequestProperty("content-charset", "UTF-8");
@@ -208,6 +239,7 @@ public class MySearchResponseJson implements MySearchResponse {
     }
 
     public JSONObject doPost(String url, String content) throws JSONException {
+        logger.info("called doPost");
         return new JSONObject(requestContent(new HttpPost(url), content));
     }
 

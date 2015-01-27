@@ -63,6 +63,11 @@ public class ReIndexAction extends BaseRestHandler {
         int hitsPerPage = request.paramAsInt("hitsPerPage", 1000);
         float waitInSeconds = request.paramAsFloat("waitInSeconds", 0);
         String basicAuthCredentials = request.param("credentials", "");
+        String proxyHost = request.param("proxyHost", null);
+        int proxyPort = request.paramAsInt("proxyPort", 8080);
+        String proxyUser = request.param("proxyUser", null);
+        String proxyPasswd = request.param("proxyPasswd", null);
+
         String filter = request.content().toUtf8();
         MySearchResponse rsp;
         if (localAction) {
@@ -73,7 +78,8 @@ public class ReIndexAction extends BaseRestHandler {
         } else {
             // TODO make it possible to restrict to a cluster
             rsp = new MySearchResponseJson(searchHost, searchPort, searchIndexName, searchType, filter,
-                    basicAuthCredentials, hitsPerPage, withVersion, keepTimeInMinutes);
+                    basicAuthCredentials, hitsPerPage, withVersion, keepTimeInMinutes, proxyHost,
+                    proxyPort, proxyUser, proxyPasswd);
         }
 
         // TODO make async and allow control of process from external (e.g. stopping etc)
