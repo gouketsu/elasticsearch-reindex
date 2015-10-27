@@ -4,16 +4,16 @@
 
     <groupId>com.pannous.es</groupId>
     <artifactId>reindex</artifactId>
-    <version>1.4.1</version>
+    <version>1.7.2</version>
     <packaging>jar</packaging>
 
     <name>Reindex Plugin</name>
     <url>http://maven.apache.org</url>
 
     <properties>
-	<maven.compiler.target>1.6</maven.compiler.target>
+	<maven.compiler.target>1.8</maven.compiler.target>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	<elasticsearch.version>1.4.0</elasticsearch.version>
+	<elasticsearch.version>1.7.3</elasticsearch.version>
     </properties>
 
     <dependencies>
@@ -83,42 +83,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>de.thetaphi</groupId>
-                <artifactId>forbiddenapis</artifactId>
-                <version>1.3</version>
-                <configuration>
-                    <!-- disallow undocumented classes like sun.misc.Unsafe: -->
-                    <internalRuntimeForbidden>true</internalRuntimeForbidden>
-                    <!--
-                      if the used Java version is too new,
-                      don't fail, just do nothing:
-                    -->
-                    <failOnUnsupportedJava>false</failOnUnsupportedJava>
-                    <bundledSignatures>
-                        <!--
-                          This will automatically choose the right
-                          signatures based on 'maven.compiler.target':
-                        -->
-                        <bundledSignature>jdk-unsafe</bundledSignature>
-                        <bundledSignature>jdk-deprecated</bundledSignature>
-                        <bundledSignature>jdk-system-out</bundledSignature>
-                    </bundledSignatures>
-                    <!--
-                    <signaturesFiles>
-                        <signaturesFile>./rel/path/to/signatures.txt</signaturesFile>
-                    </signaturesFiles>
-                    -->
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                            <goal>testCheck</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 
         </plugins>
 
@@ -128,8 +92,8 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
-                        <source>1.6</source>
-                        <target>1.6</target>
+                        <source>1.7</source>
+                        <target>1.7</target>
                     </configuration>
                 </plugin>
             </plugins>
