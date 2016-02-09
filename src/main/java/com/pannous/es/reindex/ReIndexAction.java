@@ -162,7 +162,7 @@ public class ReIndexAction extends BaseRestHandler {
                 if (withVersion)
                     indexReq.version(hit.version());
                 if (hit.parent() != null && !hit.parent().isEmpty()) {
-                    indexReq.parent(hit.parent());
+                	indexReq.parent(hit.parent());
                 }
                 brb.add(indexReq);
             } catch (Exception ex) {
@@ -172,9 +172,11 @@ public class ReIndexAction extends BaseRestHandler {
         if (brb.numberOfActions() > 0) {
             BulkResponse rsp = brb.execute().actionGet();
             if (rsp.hasFailures()) {
+            	System.out.println("Bulk processor failed. {}" + rsp.buildFailureMessage());
                 List<Integer> list = new ArrayList<Integer>(rsp.getItems().length);
                 for (BulkItemResponse br : rsp.getItems()) {
                     if (br.isFailed())
+                    	System.out.println("Failed " + br.getItemId());
                         list.add(br.getItemId());
                 }
                 return list;

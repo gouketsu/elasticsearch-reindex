@@ -10,10 +10,9 @@ import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.hppc.cursors.ObjectCursor;
-import org.elasticsearch.common.hppc.cursors.ObjectObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.*;
 
@@ -146,7 +145,7 @@ public class ReIndexWithCreate extends BaseRestHandler {
         IndexMetaData indexData = client.admin().cluster().state(new ClusterStateRequest()).
                 actionGet().getState().metaData().indices().get(oldIndex);
         Settings searchIndexSettings = indexData.settings();
-        ImmutableSettings.Builder settingBuilder = ImmutableSettings.settingsBuilder().put(searchIndexSettings);
+        Settings.Builder settingBuilder = Settings.settingsBuilder().put(searchIndexSettings);
         if (newIndexShards > 0)
             settingBuilder.put("index.number_of_shards", newIndexShards);
             
@@ -172,8 +171,8 @@ public class ReIndexWithCreate extends BaseRestHandler {
     private void copyAliases(RestRequest request, Client client) {
         String index = request.param("index");
         String searchIndexName = request.param("searchIndex");
-	boolean aliasIncludeIndex = request.paramAsBoolean("addOldIndexAsAlias", false);
-	copyAliases(index, searchIndexName, aliasIncludeIndex, client);
+        boolean aliasIncludeIndex = request.paramAsBoolean("addOldIndexAsAlias", false);
+        copyAliases(index, searchIndexName, aliasIncludeIndex, client);
     }
 
     private void copyAliases(String index, String searchIndexName, Boolean aliasIncludeIndex, Client client) {
@@ -184,7 +183,7 @@ public class ReIndexWithCreate extends BaseRestHandler {
         if(meta != null && meta.aliases() != null) {
             for (ObjectCursor<String> oldAliasCursor : meta.aliases().keys() ) {
                 empty = false;
-		aReq.addAlias(oldAliasCursor.value, index);
+                aReq.addAlias(oldAliasCursor.value, index);
             }
         }
         if (aliasIncludeIndex) {
@@ -193,7 +192,7 @@ public class ReIndexWithCreate extends BaseRestHandler {
                         + index + " - as old index still exists");
             }
             else {
-		aReq.addAlias(searchIndexName, index);
+                aReq.addAlias(searchIndexName, index);
                 empty = false;
             }
         }

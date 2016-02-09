@@ -21,6 +21,8 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.SearchHitField;
+import java.util.Map;
 
 /**
  * Searches with the given client - used for the same cluster. Not suited for
@@ -106,9 +108,15 @@ public class MySearchResponseES implements MySearchResponse {
         }
 
         @Override public String parent() {
-           if (sh.field("_parent") != null)
-              return sh.field("_parent").value();
-           return "";
+        	Map<String, SearchHitField> fields = sh.getFields();
+        	if (fields != null && fields.containsKey("_parent")) {
+        		 SearchHitField parentField = fields.get("_parent");
+
+        		 if (parentField != null) {
+                     return parentField.getValue();
+        		 }
+        	}
+        	return "";
         }
 
         @Override public long version() {

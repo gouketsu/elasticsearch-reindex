@@ -10,8 +10,8 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.hppc.cursors.ObjectCursor;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -54,7 +54,7 @@ public abstract class ReIndexActionTester extends AbstractNodesTests {
 
     @BeforeMethod public void setUp() {
         client.admin().indices().delete(new DeleteIndexRequest("_all")).actionGet();
-        Settings emptySettings = ImmutableSettings.settingsBuilder().build();
+        Settings emptySettings = Settings.settingsBuilder().build();
         action = new ReIndexAction(emptySettings, client, new RestController(emptySettings));
     }
 
@@ -99,20 +99,26 @@ public abstract class ReIndexActionTester extends AbstractNodesTests {
     }
 
     @Test public void reindexChilds() throws Exception {
+     	 client.admin().indices().prepareCreate("oldtweets").execute().actionGet();
+    	 client.admin().indices().preparePutMapping().setIndices("oldtweets").setType("retweet").setSource("{\"retweet\": { \"_parent\": { \"type\": \"tweet\" }, \"_routing\":{\"required\": true}}}").execute().actionGet();
+    	 client.admin().indices().preparePutMapping().setIndices("oldtweets").setType("tweet").setSource("{\"tweet\":{}}").execute().actionGet();
+     	
          String parent = add("oldtweets", "tweet", null, "{ \"name\" : \"hello world\", \"count\" : 1}");
+       
          // update the mapping settings for oldtweets childs (i.e retweet type)
-         client.admin().indices().preparePutMapping().setIndices("oldtweets").setType("retweet").setSource("{\"retweet\": { \"_parent\": { \"type\": \"tweet\" }, \"_routing\": { \"required\": true }, \"properties\": { \"name\": { \"type\": \"string\" }, \"count\": { \"type\": \"long\" } } }}").execute().actionGet();
-         String child = add("oldtweets", "retweet", parent, "{ \"name\" : \"RE: hello world\", \"count\" : 1, \"_parent\" : \"" + parent + "\"}");
+         String child = add("oldtweets", "retweet", parent, "{ \"name\" : \"RE: hello world\", \"count\" : 1}");
          refresh("oldtweets");
          assertThat(count("oldtweets"), equalTo(2L));
-
+         client.admin().indices().prepareCreate("tweets").execute().actionGet();
+         client.admin().indices().preparePutMapping().setIndices("tweets").setType("retweet").setSource("{\"retweet\": { \"_parent\": { \"type\": \"tweet\" }, \"_routing\":{\"required\": true}}}").execute().actionGet();
+     	
          int res = action.reindex(scrollSearch("oldtweets", "tweet", ""), "tweets", "tweet", false, 0, client);
          assertThat(res, equalTo(1));
          refresh("tweets");
          assertThat(count("tweets"), equalTo(1L));
 
          // update the mapping settings for oldtweets childs (i.e retweet type)
-         client.admin().indices().preparePutMapping().setIndices("tweets").setType("retweet").setSource("{\"retweet\": { \"_parent\": { \"type\": \"tweet\" }, \"_routing\": { \"required\": true }, \"properties\": { \"name\": { \"type\": \"string\" }, \"count\": { \"type\": \"long\" } } }}").execute().actionGet();
+       //  client.admin().indices().preparePutMapping().setIndices("tweets").setType("retweet").setSource("{\"retweet\": { \"_parent\": { \"type\": \"tweet\" }, \"_routing\": { \"required\": true }, \"properties\": { \"name\": { \"type\": \"string\" }, \"count\": { \"type\": \"long\" } } }}").execute().actionGet();
 
          res = action.reindex(scrollSearch("oldtweets", "retweet", ""), "tweets", "retweet", false, 0, client);
          assertThat(res, equalTo(1));
@@ -128,36 +134,38 @@ public abstract class ReIndexActionTester extends AbstractNodesTests {
         SearchResponse child_sr = client.prepareSearch("tweets").setTypes("retweet").setRouting(reindex_parent).setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("_parent", reindex_parent)))
                 .addSort("count", SortOrder.ASC).execute().actionGet();
         assertThat(child_sr.getHits().hits().length, equalTo(1));
+  
     }
 
     @Test public void copyAliases() throws Exception {
-	add("oldtweets", "tweet", null, "{ \"name\" : \"hello world\", \"count\" : 1}");
-	add("tweets", "tweet", null, "{ \"name\" : \"peter ä test\", \"count\" : 2}");
-	IndicesAliasesRequest aReq = new IndicesAliasesRequest();
-	aReq.addAlias("myalias", "oldtweets");
-	client.admin().indices().aliases(aReq).actionGet();
-	refresh("oldtweets");
-	refresh("tweets");
-	List<String> oldAliases = getAliasesNames("oldtweets");
-	assertThat(oldAliases.size(), equalTo(1));
-	assertThat(oldAliases.get(0), equalTo("myalias"));
+        add("oldtweets", "tweet", null, "{ \"name\" : \"hello world\", \"count\" : 1}");
+        add("tweets", "tweet", null, "{ \"name\" : \"peter ä test\", \"count\" : 2}");
+        IndicesAliasesRequest aReq = new IndicesAliasesRequest();
+        aReq.addAlias("myalias", "oldtweets");
+        client.admin().indices().aliases(aReq).actionGet();
+        refresh("oldtweets");
+        refresh("tweets");
+        List<String> oldAliases = getAliasesNames("oldtweets");
+        assertThat(oldAliases.size(), equalTo(1));
+        assertThat(oldAliases.get(0), equalTo("myalias"));
 
-	Settings emptySettings = ImmutableSettings.settingsBuilder().build();
-	RestController contrl = new RestController(emptySettings);
-	ReIndexWithCreate action = new ReIndexWithCreate(emptySettings, client, contrl);
+        Settings emptySettings = Settings.settingsBuilder().build();
+        RestController contrl = new RestController(emptySettings);
+        ReIndexWithCreate action = new ReIndexWithCreate(emptySettings, client, contrl);
 
-	Method copyAliases = action.getClass().getDeclaredMethod("copyAliases", String.class, String.class, Boolean.class, Client.class);
-	copyAliases.setAccessible(true);
-	copyAliases.invoke(action, "tweets", "oldtweets", false, client);
-	List<String> createdAliases = getAliasesNames("tweets");
-	assertThat(oldAliases, equalTo(createdAliases));
+        Method copyAliases = action.getClass().getDeclaredMethod("copyAliases", String.class, String.class, Boolean.class, Client.class);
+        copyAliases.setAccessible(true);
+        copyAliases.invoke(action, "tweets", "oldtweets", false, client);
+        List<String> createdAliases = getAliasesNames("tweets");
+        assertThat(oldAliases, equalTo(createdAliases));
     }
 
     private String add(String index, String type, String routing, String json) {
         IndexRequestBuilder req =  client.prepareIndex(index, type).setSource(json);
-        if (routing != null) 
+        if (routing != null) {
             req.setRouting(routing);
-        
+            req.setParent(routing);
+        }
         IndexResponse rsp = req.execute().actionGet();
         return rsp.getId();
     }
@@ -167,15 +175,15 @@ public abstract class ReIndexActionTester extends AbstractNodesTests {
     }
 
     private List<String> getAliasesNames(String index) {
-	IndexMetaData meta = client.admin().cluster().state(new ClusterStateRequest()).
-		actionGet().getState().metaData().index(index);
-	List<String> aliases = new ArrayList<String>();
-	if(meta != null && meta.aliases() != null) {
-	    for (ObjectCursor<String> oldAliasCursor : meta.aliases().keys()) {
-		aliases.add(oldAliasCursor.value);
-	    }
-	}
-	return aliases;
+        IndexMetaData meta = client.admin().cluster().state(new ClusterStateRequest()).
+                actionGet().getState().metaData().index(index);
+        List<String> aliases = new ArrayList<String>();
+        if(meta != null && meta.aliases() != null) {
+            for (ObjectCursor<String> oldAliasCursor : meta.aliases().keys()) {
+                aliases.add(oldAliasCursor.value);
+            }
+        }
+        return aliases;
     }
 
     private long count(String index) {
