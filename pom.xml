@@ -4,7 +4,7 @@
 
     <groupId>com.pannous.es</groupId>
     <artifactId>reindex</artifactId>
-    <version>2.0.0</version>
+    <version>2.2.0</version>
     <packaging>jar</packaging>
 
     <name>Reindex Plugin</name>
@@ -13,7 +13,7 @@
     <properties>
 	<maven.compiler.target>1.8</maven.compiler.target>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	<elasticsearch.version>2.0.2</elasticsearch.version>
+	<elasticsearch.version>2.2.0</elasticsearch.version>
     </properties>
 
     <dependencies>

@@ -178,8 +178,8 @@ public abstract class ReIndexActionTester extends AbstractNodesTests {
         IndexMetaData meta = client.admin().cluster().state(new ClusterStateRequest()).
                 actionGet().getState().metaData().index(index);
         List<String> aliases = new ArrayList<String>();
-        if(meta != null && meta.aliases() != null) {
-            for (ObjectCursor<String> oldAliasCursor : meta.aliases().keys()) {
+        if(meta != null && meta.getAliases() != null) {
+            for (ObjectCursor<String> oldAliasCursor : meta.getAliases().keys()) {
                 aliases.add(oldAliasCursor.value);
             }
         }
