@@ -6,12 +6,15 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkUtils;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
-import static org.elasticsearch.common.settings.ImmutableSettings.Builder.EMPTY_SETTINGS;
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
+import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
+import java.net.InetAddress;
+
+import java.util.*;
+
 
 /**
  * a copy from Elasticsearch to avoid the dependency to tests
@@ -21,17 +24,19 @@ public abstract class AbstractNodesTests {
     protected final ESLogger logger = Loggers.getLogger(getClass());
     private Map<String, Node> nodes = new HashMap<String, Node>();
     private Map<String, Client> clients = new HashMap<String, Client>();
-    private Settings defaultSettings = ImmutableSettings
+   
+    private Settings defaultSettings = Settings
             .settingsBuilder()
-            .put("cluster.name", "test-cluster-" + NetworkUtils.getLocalAddress().getHostName())
+            .put("cluster.name", "test-cluster")
+            .put("path.home", "/tmp")
             .build();
-
+    
     public void putDefaultSettings(Settings.Builder settings) {
         putDefaultSettings(settings.build());
     }
 
     public void putDefaultSettings(Settings settings) {
-        defaultSettings = ImmutableSettings.settingsBuilder().put(defaultSettings).put(settings).build();
+        defaultSettings = Settings.settingsBuilder().put(defaultSettings).put(settings).build();
     }
 
     public Node startNode(String id) {
@@ -57,16 +62,16 @@ public abstract class AbstractNodesTests {
     public Node buildNode(String id, Settings settings) {
         String settingsSource = getClass().getName().replace('.', '/') + ".yml";
         Settings finalSettings = settingsBuilder()
-                .loadFromClasspath(settingsSource)
+          //      .loadFromStream(settingsSource, getClass().getResourceAsStream(settingsSource))
                 .put(defaultSettings)
                 .put(settings)
                 .put("name", id)
                 .build();
 
-        if (finalSettings.get("gateway.type") == null) {
+       // if (finalSettings.get("gateway.type") == null) {
             // default to non gateway
-            finalSettings = settingsBuilder().put(finalSettings).put("gateway.type", "none").build();
-        }
+       //     finalSettings = settingsBuilder().put(finalSettings).put("gateway.type", "none").build();
+        //}
         if (finalSettings.get("cluster.routing.schedule") != null) {
             // decrease the routing schedule so new nodes will be added quickly
             finalSettings = settingsBuilder().put(finalSettings).put("cluster.routing.schedule", "50ms").build();

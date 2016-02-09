@@ -3,13 +3,13 @@ package com.pannous.es.reindex;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestModule;
 
 /**
  * @author Peter Karich
  */
-public class ReIndexPlugin extends AbstractPlugin {
+public class ReIndexPlugin extends Plugin {
     
     protected final ESLogger logger = Loggers.getLogger(ReIndexPlugin.class);
 
@@ -21,11 +21,9 @@ public class ReIndexPlugin extends AbstractPlugin {
         return "ReIndex Plugin";
     }
 
-    @Override public void processModule(Module module) {
-        if (module instanceof RestModule) {
-            ((RestModule) module).addRestAction(ReIndexAction.class);
-            ((RestModule) module).addRestAction(ReIndexWithCreate.class);
-            // logger.info("NOW " + action.getFeed("test"));
-        }
+    public void onModule(final RestModule module) {
+    	module.addRestAction(ReIndexAction.class);
+    	module.addRestAction(ReIndexWithCreate.class);
     }
+
 }

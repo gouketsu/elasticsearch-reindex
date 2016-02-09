@@ -8,12 +8,12 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.rest.RestController;
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.net.InetAddress;
 
 /**
  * Class to use the reindex plugin as rewrite/refeed plugin - directly from
@@ -25,7 +25,7 @@ public class ExampleUsage {
 
     private final static String charset = "UTF-8";
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         String searchHost = "1.1.1.1";
         int searchPort = 9300;
         String searchIndexName = "search_index";
@@ -52,12 +52,12 @@ public class ExampleUsage {
         Logger.getLogger("test").info("querying " + searchHost + ":" + searchPort
                 + " at " + searchIndexName + " with " + basicAuthCredentials);
 
-        Settings settings = ImmutableSettings.settingsBuilder()
+        Settings settings = Settings.settingsBuilder()
                 .put("cluster.name", cluster).build();
-        Client client = new TransportClient(settings).
-                addTransportAddress(new InetSocketTransportAddress(searchHost, searchPort));
+        Client client = TransportClient.builder().settings(settings).build().
+                addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(searchHost), searchPort));
 
-        Settings emptySettings = ImmutableSettings.settingsBuilder().build();
+        Settings emptySettings = Settings.settingsBuilder().build();
         RestController contrl = new RestController(emptySettings);
         ReIndexAction action = new ReIndexAction(emptySettings, client, contrl) {
             @Override protected MySearchHits callback(MySearchHits hits) {

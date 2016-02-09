@@ -10,10 +10,9 @@ import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.hppc.cursors.ObjectCursor;
-import org.elasticsearch.common.hppc.cursors.ObjectObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.*;
 
@@ -146,7 +145,7 @@ public class ReIndexWithCreate extends BaseRestHandler {
         IndexMetaData indexData = client.admin().cluster().state(new ClusterStateRequest()).
                 actionGet().getState().metaData().indices().get(oldIndex);
         Settings searchIndexSettings = indexData.settings();
-        ImmutableSettings.Builder settingBuilder = ImmutableSettings.settingsBuilder().put(searchIndexSettings);
+        Settings.Builder settingBuilder = Settings.settingsBuilder().put(searchIndexSettings);
         if (newIndexShards > 0)
             settingBuilder.put("index.number_of_shards", newIndexShards);
             
