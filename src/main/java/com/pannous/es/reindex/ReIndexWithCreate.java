@@ -92,9 +92,9 @@ public class ReIndexWithCreate extends BaseRestHandler {
 
                 IndexMetaData indexData = client.admin().cluster().state(new ClusterStateRequest()).
                         actionGet().getState().metaData().indices().get(searchIndexName);
-                Settings searchIndexSettings = indexData.settings();
+                Settings searchIndexSettings = indexData.getSettings();
 
-                for(ObjectCursor<String> mapKeyCursor : indexData.mappings().keys()) {
+                for(ObjectCursor<String> mapKeyCursor : indexData.getMappings().keys()) {
 		  if (skipTypeList.contains(mapKeyCursor.value)) {
 		    logger.info("Skip type [{}]", mapKeyCursor.value);
 		    continue;
@@ -144,7 +144,7 @@ public class ReIndexWithCreate extends BaseRestHandler {
             String newIndex, int newIndexShards, Client client) throws IOException {
         IndexMetaData indexData = client.admin().cluster().state(new ClusterStateRequest()).
                 actionGet().getState().metaData().indices().get(oldIndex);
-        Settings searchIndexSettings = indexData.settings();
+        Settings searchIndexSettings = indexData.getSettings();
         Settings.Builder settingBuilder = Settings.settingsBuilder().put(searchIndexSettings);
         if (newIndexShards > 0)
             settingBuilder.put("index.number_of_shards", newIndexShards);
@@ -153,7 +153,7 @@ public class ReIndexWithCreate extends BaseRestHandler {
         
         if(type.equals("*")) {
             createReq = new CreateIndexRequest(newIndex);
-            for(ObjectObjectCursor<String, MappingMetaData> mapCursor : indexData.mappings()) {
+            for(ObjectObjectCursor<String, MappingMetaData> mapCursor : indexData.getMappings()) {
                 createReq.mapping(mapCursor.key, mapCursor.value.sourceAsMap());
             }
             createReq.settings(settingBuilder.build());
@@ -180,8 +180,8 @@ public class ReIndexWithCreate extends BaseRestHandler {
                 actionGet().getState().metaData().index(searchIndexName);
         IndicesAliasesRequest aReq = new IndicesAliasesRequest();
         boolean empty = true;
-        if(meta != null && meta.aliases() != null) {
-            for (ObjectCursor<String> oldAliasCursor : meta.aliases().keys() ) {
+        if(meta != null && meta.getAliases() != null) {
+            for (ObjectCursor<String> oldAliasCursor : meta.getAliases().keys() ) {
                 empty = false;
                 aReq.addAlias(oldAliasCursor.value, index);
             }
